@@ -1,5 +1,7 @@
 package com.bonheur.portfolio.config;
 
+import com.bonheur.portfolio.config.SecurityConstants;
+import com.bonheur.portfolio.utils.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -12,8 +14,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
-import com.bonheur.portfolio.utils.JwtAuthFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -35,9 +35,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/backoffice/auth/**", "/backoffice/projects/**").permitAll()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(auth -> {
+                    SecurityConstants.PUBLIC_PATHS
+                            .forEach(path -> auth.requestMatchers(path + "/**").permitAll());
+
+                    SecurityConstants.AUTH_REQUIRED_PATH_PREFIXES
+                            .forEach(path -> auth.requestMatchers(path + "/**").authenticated());
+
+                    auth.anyRequest().authenticated();
+                })
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
