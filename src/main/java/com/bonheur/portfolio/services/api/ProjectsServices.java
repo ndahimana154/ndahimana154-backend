@@ -52,7 +52,7 @@ public class ProjectsServices {
         project.setUrl(dto.getUrl());
         project.setStartTime(dto.getStartTime());
         project.setEndTime(dto.getEndTime());
-
+ 
         Project newProject = projectRepository.save(project);
         newProject.setImages(fileUploadUtil.getFileUrl(newProject.getImages()));
 
