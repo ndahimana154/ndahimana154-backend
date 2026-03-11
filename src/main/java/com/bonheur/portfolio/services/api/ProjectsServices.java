@@ -29,23 +29,19 @@ public class ProjectsServices {
         }
 
         Project project = new Project();
+        
         project.setTitle(dto.getTitle());
         project.setDescription(dto.getDescription());
         project.setImages(dto.getImages());
         project.setCategory(dto.getCategory());
         project.setTechnologies(dto.getTechnologies());
         project.setUrl(dto.getUrl());
-
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        try {
-            project.setStartTime(dateFormat.parse(dto.getStartTime()));
-            project.setEndTime(dateFormat.parse(dto.getEndTime()));
-        } catch (ParseException e) {
-            return Map.of("message", "Invalid date format", "action", 0);
-        }
+        project.setStartTime(dto.getStartTime());
+        project.setEndTime(dto.getEndTime());
 
         Project newProject = projectRepository.save(project);
-        return Map.of("message", "Project created successfully", "action", 1, "data", Map.of("data", newProject));
+
+        return Map.of("message", "Project created successfully", "action", 1, "data", Map.of("project", newProject));
     }
 
     @Transactional(readOnly = true)
@@ -74,13 +70,14 @@ public class ProjectsServices {
         project.setTechnologies(dto.getTechnologies());
         project.setUrl(dto.getUrl());
 
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        try {
-            project.setStartTime(dateFormat.parse(dto.getStartTime()));
-            project.setEndTime(dto.getEndTime() != null ? dateFormat.parse(dto.getEndTime()) : null);
-        } catch (ParseException e) {
-            return Map.of("message", "Invalid date format", "action", 0);
-        }
+        // SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        // try {
+        // project.setStartTime(dateFormat.parse(dto.getStartTime()));
+        // project.setEndTime(dto.getEndTime() != null ?
+        // dateFormat.parse(dto.getEndTime()) : null);
+        // } catch (ParseException e) {
+        // return Map.of("message", "Invalid date format", "action", 0);
+        // }
 
         Project updated = projectRepository.save(project);
         return Map.of("message", "Project updated successfully", "action", 1, "data", Map.of("data", updated));

@@ -46,10 +46,10 @@ public class Project {
     private String technologies;
 
     @Column(nullable = false, name = "start_time")
-    private Date startTime;
+    private String startTime;
 
     @Column(nullable = true, name = "end_time")
-    private Date endTime;
+    private String endTime;
 
     @CreationTimestamp
     @Column(updatable = false, nullable = false)
