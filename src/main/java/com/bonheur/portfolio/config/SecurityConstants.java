@@ -13,5 +13,7 @@ public final class SecurityConstants {
 
     public static final java.util.List<String> PUBLIC_PATHS = java.util.List.of(
             "/backoffice/auth",
-            "/remote");
+            "/remote",
+            "/uploads",
+            "/api/uploads");
 }

@@ -30,9 +30,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String authHeader = req.getHeader("Authorization");
 
-        System.out.println("JwtAuthFilter: request= " + req.getMethod() + " " + req.getRequestURI());
-        System.out.println("JwtAuthFilter: Authorization header= " + authHeader);
-
         boolean jwtAttempted = false;
         boolean jwtValid = false;
 
@@ -40,7 +37,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             jwtAttempted = true;
             String token = authHeader.substring(7);
 
-            System.out.println("JwtAuthFilter: Extracted token= " + token);
             String email = null;
             try {
                 email = jwtService.extractEmail(token);
@@ -48,15 +44,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 System.out.println("JwtAuthFilter: extractEmail failed: " + e.getMessage());
             }
 
-            System.out.println("JwtAuthFilter: Extracted email from token= " + email);
-
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 try {
-                    System.out.println("JwtAuthFilter: Loading user details for email= " + email);
                     UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-                    System.out.println("JwtAuthFilter: Loaded user details username= " + userDetails.getUsername());
+
                     boolean valid = jwtService.validateToken(token);
-                    System.out.println("JwtAuthFilter: Token validation result= " + valid);
 
                     if (valid) {
                         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -64,9 +56,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                 null, userDetails.getAuthorities());
                         SecurityContextHolder.getContext().setAuthentication(authToken);
                         jwtValid = true;
-                        System.out.println("JwtAuthFilter: Authentication set for user= " + email);
-                        System.out.println("JwtAuthFilter: SecurityContext authentication= "
-                                + SecurityContextHolder.getContext().getAuthentication());
                     } else {
                         System.out.println("JwtAuthFilter: Token invalid, auth not set");
                     }
@@ -95,7 +84,5 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(req, res);
-        System.out.println("JwtAuthFilter: After chain security context authentication= "
-                + SecurityContextHolder.getContext().getAuthentication());
     }
 }

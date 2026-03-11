@@ -55,9 +55,6 @@ public class JwtServices {
                 .getBody();
         String subject = claims.getSubject();
 
-        System.out.println("Extracted subject from token: " + subject);
-        System.out.println("Extracted full claims: " + claims);
-
         return subject;
     }
 
