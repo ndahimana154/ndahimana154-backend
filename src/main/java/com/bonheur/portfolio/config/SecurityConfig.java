@@ -34,7 +34,12 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        RestAuthErrorHandler authErrorHandler = new RestAuthErrorHandler();
+
         http.csrf(csrf -> csrf.disable())
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authErrorHandler)
+                        .accessDeniedHandler(authErrorHandler))
                 .authorizeHttpRequests(auth -> {
                     SecurityConstants.PUBLIC_PATHS
                             .forEach(path -> auth.requestMatchers(path + "/**").permitAll());

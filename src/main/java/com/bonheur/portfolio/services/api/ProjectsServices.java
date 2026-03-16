@@ -1,6 +1,7 @@
 package com.bonheur.portfolio.services.api;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,9 +14,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bonheur.portfolio.dto.requests.CreateProjectsDto;
+import com.bonheur.portfolio.dto.requests.UpdateProjectDto;
 import com.bonheur.portfolio.models.Project;
 import com.bonheur.portfolio.repositories.ProjectRepository;
 import com.bonheur.portfolio.services.FileUploadUtil;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class ProjectsServices {
@@ -34,27 +42,24 @@ public class ProjectsServices {
             return Map.of("message", "Project already exists", "action", 0);
         }
 
-        Project project = new Project();
-
-        if (dto.getImages() == null || dto.getImages().isEmpty()) {
-            return Map.of("message", "Image file is required", "action", 0);
+        if (dto.getImages() == null || dto.getImages().length == 0) {
+            return Map.of("message", "At least one image file is required", "action", 0);
         }
 
         String prefix = dto.getTitle() != null ? dto.getTitle() : "project";
-        String storedImageFilename = fileUploadUtil.uploadFile(dto.getImages(), "projects",
-                FileUploadUtil.DEFAULT_IMAGE_EXTENSIONS, prefix);
+        List<String> storedImagePaths = uploadFiles(dto.getImages(), "projects", prefix);
 
-        project.setTitle(dto.getTitle());
-        project.setDescription(dto.getDescription());
-        project.setImages(storedImageFilename);
-        project.setCategory(dto.getCategory());
-        project.setTechnologies(dto.getTechnologies());
-        project.setUrl(dto.getUrl());
-        project.setStartTime(dto.getStartTime());
-        project.setEndTime(dto.getEndTime());
- 
+        Project project = Project.builder()
+                .title(dto.getTitle())
+                .description(dto.getDescription())
+                .images(String.join(",", storedImagePaths))
+                .category(dto.getCategory())
+                .technologies(dto.getTechnologies()).url(dto.getUrl()).startTime(dto.getStartTime())
+                .endTime(dto.getEndTime())
+                .build();
+
         Project newProject = projectRepository.save(project);
-        newProject.setImages(fileUploadUtil.getFileUrl(newProject.getImages()));
+        newProject.setImages(mapToUrlCsv(newProject.getImages()));
 
         return Map.of("message", "Project created successfully", "action", 1, "data", Map.of("project", newProject));
     }
@@ -73,12 +78,15 @@ public class ProjectsServices {
 
         Specification<Project> spec = (root, query, cb) -> {
             jakarta.persistence.criteria.Predicate p = cb.conjunction();
+
             if (title != null && !title.isBlank()) {
                 p = cb.and(p, cb.like(cb.lower(root.get("title")), "%" + title.toLowerCase() + "%"));
             }
+
             if (category != null && !category.isBlank()) {
                 p = cb.and(p, cb.like(cb.lower(root.get("category")), "%" + category.toLowerCase() + "%"));
             }
+
             if (technologies != null && !technologies.isBlank()) {
                 p = cb.and(p, cb.like(cb.lower(root.get("technologies")), "%" + technologies.toLowerCase() + "%"));
             }
@@ -94,43 +102,83 @@ public class ProjectsServices {
     }
 
     @Transactional
-    public Map<String, Object> updateProject(UUID id, CreateProjectsDto dto) {
+    public Map<String, Object> updateProject(UUID id, UpdateProjectDto dto) {
+        Objects.requireNonNull(id, "ID must not be null");
+        Objects.requireNonNull(dto, "Update payload must not be null");
+
         Optional<Project> existingProject = projectRepository.findById(id);
+
         if (existingProject.isEmpty()) {
             return Map.of("message", "Project not found", "action", 0);
         }
 
-        Project project = existingProject.get();
-        project.setTitle(dto.getTitle());
-        project.setDescription(dto.getDescription());
+        // System.out.println("UU");
 
-        if (dto.getImages() != null && !dto.getImages().isEmpty()) {
-            String namePrefix = dto.getTitle() != null ? dto.getTitle() : "project";
-            String newImageFilename = fileUploadUtil.uploadFile(dto.getImages(), "projects",
-                    FileUploadUtil.DEFAULT_IMAGE_EXTENSIONS, namePrefix);
-            project.setImages(newImageFilename);
+        Project project = existingProject.get();
+
+        if (dto.getTitle() != null && !dto.getTitle().isBlank()) {
+            project.setTitle(dto.getTitle());
+        }
+        if (dto.getDescription() != null) {
+            project.setDescription(dto.getDescription());
         }
 
-        project.setCategory(dto.getCategory());
-        project.setTechnologies(dto.getTechnologies());
-        project.setUrl(dto.getUrl());
-        project.setStartTime(dto.getStartTime());
-        project.setEndTime(dto.getEndTime());
+        if (dto.getImages() != null && dto.getImages().length > 0) {
+            String namePrefix = (dto.getTitle() != null && !dto.getTitle().isBlank()) ? dto.getTitle()
+                    : project.getTitle();
+            List<String> newImagePaths = uploadFiles(dto.getImages(), "projects", namePrefix);
+            project.setImages(String.join(",", newImagePaths));
+        }
+
+        if (dto.getCategory() != null) {
+            project.setCategory(dto.getCategory());
+        }
+        if (dto.getTechnologies() != null) {
+            project.setTechnologies(dto.getTechnologies());
+        }
+        if (dto.getUrl() != null) {
+            project.setUrl(dto.getUrl());
+        }
+        if (dto.getStartTime() != null) {
+            project.setStartTime(dto.getStartTime());
+        }
+        if (dto.getEndTime() != null) {
+            project.setEndTime(dto.getEndTime());
+        }
+
+        if (dto.getIsDeleted() != null) {
+            project.setDeleted(dto.getIsDeleted());
+        }
 
         Project updated = projectRepository.save(project);
-        updated.setImages(fileUploadUtil.getFileUrl(updated.getImages()));
+        updated.setImages(mapToUrlCsv(updated.getImages()));
 
         return Map.of("message", "Project updated successfully", "action", 1, "data", Map.of("project", updated));
     }
 
-    @Transactional
-    public Map<String, Object> deleteProject(UUID id) {
-        Optional<Project> existingProject = projectRepository.findById(id);
-        if (existingProject.isEmpty()) {
-            return Map.of("message", "Project not found", "action", 0);
+    private List<String> uploadFiles(MultipartFile[] files, String subfolder, String namePrefix) {
+        List<String> storedPaths = new ArrayList<>();
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) {
+                continue;
+            }
+            String path = fileUploadUtil.uploadFile(file, subfolder, FileUploadUtil.DEFAULT_IMAGE_EXTENSIONS,
+                    namePrefix);
+            storedPaths.add(path);
         }
+        return storedPaths;
+    }
 
-        projectRepository.deleteById(id);
-        return Map.of("message", "Project deleted successfully", "action", 1);
+    private String mapToUrlCsv(String imagePathsCsv) {
+        if (imagePathsCsv == null || imagePathsCsv.isBlank()) {
+            return "";
+        }
+        return Arrays.stream(imagePathsCsv.split(","))
+                .map(String::trim)
+                .filter(it -> !it.isBlank())
+                .map(fileUploadUtil::getFileUrl)
+                .filter(url -> url != null && !url.isBlank())
+                .reduce((a, b) -> a + "," + b)
+                .orElse("");
     }
 }

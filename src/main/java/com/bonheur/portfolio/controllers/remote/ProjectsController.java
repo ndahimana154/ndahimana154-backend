@@ -5,42 +5,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.bonheur.portfolio.models.Project;
 import com.bonheur.portfolio.services.FileUploadUtil;
-import com.bonheur.portfolio.services.api.ProjectsServices;
+import com.bonheur.portfolio.services.remote.RemoteProjectService;
 
 @RestController("remoteProjectsController")
 @RequestMapping("/remote/projects")
 public class ProjectsController {
 
-    private final ProjectsServices projectsService;
+    private final RemoteProjectService projectsService;
     private final FileUploadUtil fileUploadUtil;
 
-    public ProjectsController(ProjectsServices projectsService, FileUploadUtil fileUploadUtil) {
+    public ProjectsController(RemoteProjectService projectsService, FileUploadUtil fileUploadUtil) {
         this.projectsService = projectsService;
         this.fileUploadUtil = fileUploadUtil;
-    }
-
-    @GetMapping("/")
-    public ResponseEntity<java.util.Map<String, Object>> getAllProjects() {
-        var result = projectsService.getAllProjects();
-
-        if (result.containsKey("data")) {
-            var data = (Map<String, Object>) result.get("data");
-            if (data != null && data.containsKey("projects")) {
-                List<Project> projects = (List<Project>) data.get("projects");
-                if (projects != null) {
-                    decorateWithFileUrl(projects);
-                    data.put("projects", projects);
-                }
-            }
-        }
-
-        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/search")
@@ -53,7 +34,8 @@ public class ProjectsController {
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "DESC") String direction) {
 
-        var pageResult = projectsService.searchProjects(title, category, technologies, page, size, sortBy, direction);
+        var pageResult = projectsService.searchRemoteProjects(title, category, technologies, page, size, sortBy,
+                direction);
         List<Project> content = pageResult.getContent();
         decorateWithFileUrl(content);
 

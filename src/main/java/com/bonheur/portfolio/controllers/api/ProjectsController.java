@@ -1,5 +1,6 @@
 package com.bonheur.portfolio.controllers.api;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.bonheur.portfolio.dto.requests.CreateProjectsDto;
+import com.bonheur.portfolio.dto.requests.UpdateProjectDto;
 import com.bonheur.portfolio.models.Project;
 import com.bonheur.portfolio.services.FileUploadUtil;
 import com.bonheur.portfolio.services.api.ProjectsServices;
@@ -43,19 +45,7 @@ public class ProjectsController {
 
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAllProjects() {
-        System.out.println("Received request to get all projects");
         Map<String, Object> result = projectsService.getAllProjects();
-
-        if (result.containsKey("data")) {
-            var data = (Map<String, Object>) result.get("data");
-            if (data != null && data.containsKey("projects")) {
-                List<Project> projects = (List<Project>) data.get("projects");
-                if (projects != null) {
-                    decorateWithFileUrl(projects);
-                    data.put("projects", projects);
-                }
-            }
-        }
 
         return ResponseEntity.ok(result);
     }
@@ -88,25 +78,30 @@ public class ProjectsController {
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> updateProject(@PathVariable UUID id,
-            @ModelAttribute CreateProjectsDto dto) {
+            @ModelAttribute UpdateProjectDto dto) {
         ResponseEntity<Map<String, Object>> validationResponse = validationUtils.validateAndBuildResponse(dto);
         if (validationResponse != null) {
             return validationResponse;
         }
 
-        Map<String, Object> result = projectsService.updateProject(id, dto);
-        return ResponseEntity.ok(result);
-    }
+        System.out.println("Received request to update project with ID: " + id);
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> deleteProject(@PathVariable UUID id) {
-        Map<String, Object> result = projectsService.deleteProject(id);
+        Map<String, Object> result = projectsService.updateProject(id, dto);
         return ResponseEntity.ok(result);
     }
 
     private void decorateWithFileUrl(List<Project> projects) {
         for (Project project : projects) {
-            project.setImages(fileUploadUtil.getFileUrl(project.getImages()));
+            String images = project.getImages();
+            if (images == null || images.isBlank()) {
+                continue;
+            }
+            List<String> finalUrls = Arrays.stream(images.split(","))
+                    .map(String::trim)
+                    .filter(it -> !it.isBlank())
+                    .map(it -> it.startsWith("http") ? it : fileUploadUtil.getFileUrl(it))
+                    .toList();
+            project.setImages(String.join(",", finalUrls));
         }
     }
 }

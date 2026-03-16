@@ -1,7 +1,6 @@
 package com.bonheur.portfolio.models;
 
 import java.time.Instant;
-import java.util.Date;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -13,13 +12,20 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Setter
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 @Table(name = "projects")
 @Entity
+@Builder
 public class Project {
     @Id
     @GeneratedValue(generator = "UUID")
@@ -38,6 +44,10 @@ public class Project {
 
     @Column(nullable = false, name = "url")
     private String url;
+
+    @Column(nullable = false, name = "is_deleted")
+    @Builder.Default
+    private boolean isDeleted = false;
 
     @Column(nullable = false, name = "category")
     private String category;
