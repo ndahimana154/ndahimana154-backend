@@ -12,8 +12,12 @@ import com.bonheur.portfolio.models.Project;
 import com.bonheur.portfolio.services.FileUploadUtil;
 import com.bonheur.portfolio.services.remote.RemoteProjectService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController("remoteProjectsController")
 @RequestMapping("/remote/projects")
+@Tag(name = "Remote Projects endpoints", description = "Endpoints for retrieving projects for the remote client")
 public class ProjectsController {
 
     private final RemoteProjectService projectsService;
@@ -25,6 +29,7 @@ public class ProjectsController {
     }
 
     @GetMapping("/search")
+    @Operation(summary = "Search projects", description = "Searches for projects based on title, category, and technologies with pagination and sorting options.")
     public ResponseEntity<Map<String, Object>> searchProjects(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String category,
@@ -52,6 +57,7 @@ public class ProjectsController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get project by ID", description = "Retrieves a project by its unique ID.")
     public ResponseEntity<Project> getProjectById(@PathVariable UUID id) {
         return projectsService.getProjectById(id)
                 .map(project -> {

@@ -8,6 +8,9 @@ import com.bonheur.portfolio.dto.requests.RegisterRequestDto;
 import com.bonheur.portfolio.services.api.AuthServices;
 import com.bonheur.portfolio.utils.ValidationUtils;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping("/backoffice/auth")
+@Tag(name = "Authentication endpoints", description = "Endpoints for user registration and login")
 public class AuthController {
 
     private final AuthServices authService;
@@ -27,6 +31,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @Operation(summary = "Register a new user", description = "Registers a new user with the provided details.")
     public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequestDto dto) {
         ResponseEntity<Map<String, Object>> validationResponse = validationUtils.validateAndBuildResponse(dto);
 
@@ -39,6 +44,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
+    @Operation(summary = "Login a user", description = "Authenticates a user with the provided credentials.")
     public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequestDto dto) {
         ResponseEntity<Map<String, Object>> validationResponse = validationUtils.validateAndBuildResponse(dto);
 
