@@ -5,45 +5,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.bonheur.portfolio.models.Project;
 import com.bonheur.portfolio.services.FileUploadUtil;
-import com.bonheur.portfolio.services.api.ProjectsServices;
+import com.bonheur.portfolio.services.remote.RemoteProjectService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController("remoteProjectsController")
 @RequestMapping("/remote/projects")
+@Tag(name = "Remote Projects endpoints", description = "Endpoints for retrieving projects for the remote client")
 public class ProjectsController {
 
-    private final ProjectsServices projectsService;
+    private final RemoteProjectService projectsService;
     private final FileUploadUtil fileUploadUtil;
 
-    public ProjectsController(ProjectsServices projectsService, FileUploadUtil fileUploadUtil) {
+    public ProjectsController(RemoteProjectService projectsService, FileUploadUtil fileUploadUtil) {
         this.projectsService = projectsService;
         this.fileUploadUtil = fileUploadUtil;
     }
 
-    @GetMapping("/")
-    public ResponseEntity<java.util.Map<String, Object>> getAllProjects() {
-        var result = projectsService.getAllProjects();
-
-        if (result.containsKey("data")) {
-            var data = (Map<String, Object>) result.get("data");
-            if (data != null && data.containsKey("projects")) {
-                List<Project> projects = (List<Project>) data.get("projects");
-                if (projects != null) {
-                    decorateWithFileUrl(projects);
-                    data.put("projects", projects);
-                }
-            }
-        }
-
-        return ResponseEntity.ok(result);
-    }
-
     @GetMapping("/search")
+    @Operation(summary = "Search projects", description = "Searches for projects based on title, category, and technologies with pagination and sorting options.")
     public ResponseEntity<Map<String, Object>> searchProjects(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String category,
@@ -53,7 +39,8 @@ public class ProjectsController {
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "DESC") String direction) {
 
-        var pageResult = projectsService.searchProjects(title, category, technologies, page, size, sortBy, direction);
+        var pageResult = projectsService.searchRemoteProjects(title, category, technologies, page, size, sortBy,
+                direction);
         List<Project> content = pageResult.getContent();
         decorateWithFileUrl(content);
 
@@ -70,6 +57,7 @@ public class ProjectsController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get project by ID", description = "Retrieves a project by its unique ID.")
     public ResponseEntity<Project> getProjectById(@PathVariable UUID id) {
         return projectsService.getProjectById(id)
                 .map(project -> {

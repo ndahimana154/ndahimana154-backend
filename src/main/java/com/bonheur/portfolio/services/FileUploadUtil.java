@@ -95,4 +95,5 @@ public class FileUploadUtil {
         String ext = filename.substring(dotIndex + 1).toLowerCase(Locale.ROOT).trim();
         return ext.isBlank() ? java.util.Optional.empty() : java.util.Optional.of(ext);
     }
+
 }
